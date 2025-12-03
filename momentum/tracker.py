@@ -22,27 +22,54 @@ class HabitTracker:
         if name in self.habits:
             print("Habit already exists.")
             return
-        self.habits[name] = {"completed_days": []}
+        self.habits[name] = {
+            "completed_days": [],
+            "streak": 0,
+            "last_completed": None
+        }
         self.save_data()
         print(f"Added habit: {name}")
 
     def check_habit(self, name):
-        from datetime import date
-        
+        from datetime import date, timedelta
+
         if name not in self.habits:
             print("Habit not found.")
             return
-        today = str(date.today())
-        if today not in self.habits[name]["completed_days"]:
-            self.habits[name]["completed_days"].append(today)
-            self.save_data()
-            print(f"Checked off {name} for today!")
-        else:
-            print("You've already completed this today.")
 
+        today = str(date.today())
+        habit = self.habits[name]
+
+        if today in habit["completed_days"]:
+            print("You've already completed this today.")
+            return
+
+        # add today
+        habit["completed_days"].append(today)
+
+        # calculate streak
+        if habit["last_completed"]:
+            last = date.fromisoformat(habit["last_completed"])
+            if last == date.today() - timedelta(days=1):
+                habit["streak"] += 1
+            else:
+                habit["streak"] = 1
+        else:
+            habit["streak"] = 1
+
+        habit["last_completed"] = today
+
+        self.save_data()
+        print(f"Nice work! {name} streak: {habit['streak']}🔥")
+    
     def show_habits(self):
         if not self.habits:
             print("No habits yet. Add one!")
             return
+
+        print("\nYour Habits:")
         for habit, data in self.habits.items():
-            print(f"- {habit} (days completed: {len(data['completed_days'])})")
+            streak = data.get("streak", 0)
+            days = len(data["completed_days"])
+            print(f"- {habit} | Completed {days} days | Streak: {streak}🔥")
+
