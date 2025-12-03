@@ -1,14 +1,16 @@
 from momentum.tracker import HabitTracker
+from rich.console import Console
+console = Console()
 
 def main():
     tracker = HabitTracker()
 
     while True:
-        print("\n=== Momentum Habit Tracker ===")
-        print("1. Add habit")
-        print("2. Check off habit for today")
-        print("3. View habits")
-        print("4. Quit")
+        console.print("\n[bold blue]=== Momentum Habit Tracker ===[/]")
+        console.print("[cyan]1.[/] Add habit")
+        console.print("[cyan]2.[/] Check off habit for today")
+        console.print("[cyan]3.[/] View habits dashboard")
+        console.print("[cyan]4.[/] Quit")
 
         choice = input("Choose an option: ")
 

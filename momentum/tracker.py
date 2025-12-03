@@ -1,5 +1,9 @@
 import json
 from pathlib import Path
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
 
 DATA_FILE = Path("data/habits.json")
 
@@ -64,12 +68,19 @@ class HabitTracker:
     
     def show_habits(self):
         if not self.habits:
-            print("No habits yet. Add one!")
+            console.print("[bold yellow]No habits yet. Add one![/]")
             return
 
-        print("\nYour Habits:")
+        table = Table(title="Momentum Habit Dashboard")
+
+        table.add_column("Habit", style="cyan", no_wrap=True)
+        table.add_column("Total Days", style="green")
+        table.add_column("Streak 🔥", style="magenta")
+
         for habit, data in self.habits.items():
+            total = len(data.get("completed_days", []))
             streak = data.get("streak", 0)
-            days = len(data["completed_days"])
-            print(f"- {habit} | Completed {days} days | Streak: {streak}🔥")
+            table.add_row(habit, str(total), str(streak))
+
+        console.print(table)
 
