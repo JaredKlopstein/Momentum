@@ -84,3 +84,39 @@ class HabitTracker:
 
         console.print(table)
 
+    def weekly_stats(self):
+        from datetime import date, timedelta
+
+        if not self.habits:
+            console.print("[yellow]No habits to analyze yet.[/]")
+            return
+
+        table = Table(title="Last 7 Days Progress")
+        table.add_column("Habit", style="cyan")
+        table.add_column("Completed (7d)", style="green")
+
+        today = date.today()
+
+        for habit, data in self.habits.items():
+            completions = 0
+            for day in data["completed_days"]:
+                d = date.fromisoformat(day)
+                if (today - d).days < 7:
+                    completions += 1
+
+            table.add_row(habit, f"{completions}/7")
+
+        console.print(table)
+
+    def delete_habit(self, name):
+        if name not in self.habits:
+            console.print("[red]Habit not found.[/]")
+            return
+        
+        confirm = input(f"Are you sure you want to delete '{name}'? (y/n): ").lower()
+        if confirm == "y":
+            del self.habits[name]
+            self.save_data()
+            console.print(f"[bold red]Deleted habit:[/] {name}")
+        else:
+            console.print("[yellow]Delete canceled.[/]")
