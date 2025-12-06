@@ -1,57 +1,64 @@
 import json
-from pathlib import Path
+import uuid
+from datetime import date, timedelta
 from rich.console import Console
 from rich.table import Table
 
 console = Console()
+DATA_FILE = "data/habits.json"
 
-DATA_FILE = Path("data/habits.json")
 
 class HabitTracker:
     def __init__(self):
-        self.habits = self.load_data()
+        self.habits = self.load_data()  # {id: habit_data}
+
+    # ---------------- Data Handling ---------------- #
 
     def load_data(self):
-        if DATA_FILE.exists():
+        try:
             with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        return {}
+                data = json.load(f)
+            return {habit["id"]: habit for habit in data.get("habits", [])}
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
 
     def save_data(self):
-        DATA_FILE.parent.mkdir(exist_ok=True)
         with open(DATA_FILE, "w") as f:
-            json.dump(self.habits, f, indent=4)
+            json.dump({"habits": list(self.habits.values())}, f, indent=2)
 
-    def add_habit(self, name):
-        if name in self.habits:
-            print("Habit already exists.")
-            return
-        self.habits[name] = {
+    # ---------------- Habit Ops ---------------- #
+
+    def add_habit(self, name, notes=""):
+        habit_id = str(uuid.uuid4())
+        self.habits[habit_id] = {
+            "id": habit_id,
+            "name": name,
             "completed_days": [],
             "streak": 0,
-            "last_completed": None
+            "last_completed": None,
+            "notes": notes,
         }
         self.save_data()
-        print(f"Added habit: {name}")
+        console.print(f"[green]Habit added:[/] {name} ({habit_id[:6]})")
+        return habit_id
 
     def check_habit(self, name):
-        from datetime import date, timedelta
-
-        if name not in self.habits:
-            print("Habit not found.")
+        # Find habit by name (user friendly)
+        habit_id = next((hid for hid, h in self.habits.items() if h["name"] == name), None)
+        if not habit_id:
+            console.print("[red]Habit not found.[/]")
             return
 
+        habit = self.habits[habit_id]
         today = str(date.today())
-        habit = self.habits[name]
 
         if today in habit["completed_days"]:
-            print("You've already completed this today.")
+            console.print("[yellow]Already checked off today.[/]")
             return
 
-        # add today
         habit["completed_days"].append(today)
 
-        # calculate streak
+        # streak logic
         if habit["last_completed"]:
             last = date.fromisoformat(habit["last_completed"])
             if last == date.today() - timedelta(days=1):
@@ -62,31 +69,28 @@ class HabitTracker:
             habit["streak"] = 1
 
         habit["last_completed"] = today
-
         self.save_data()
-        print(f"Nice work! {name} streak: {habit['streak']}🔥")
-    
+
+        console.print(f"🔥 Nice work! {habit['name']} streak: {habit['streak']}")
+
     def show_habits(self):
         if not self.habits:
             console.print("[bold yellow]No habits yet. Add one![/]")
             return
 
         table = Table(title="Momentum Habit Dashboard")
-
         table.add_column("Habit", style="cyan", no_wrap=True)
         table.add_column("Total Days", style="green")
         table.add_column("Streak 🔥", style="magenta")
 
-        for habit, data in self.habits.items():
-            total = len(data.get("completed_days", []))
-            streak = data.get("streak", 0)
-            table.add_row(habit, str(total), str(streak))
+        for habit in self.habits.values():
+            total = len(habit["completed_days"])
+            streak = habit["streak"]
+            table.add_row(habit["name"], str(total), str(streak))
 
         console.print(table)
 
     def weekly_stats(self):
-        from datetime import date, timedelta
-
         if not self.habits:
             console.print("[yellow]No habits to analyze yet.[/]")
             return
@@ -97,26 +101,25 @@ class HabitTracker:
 
         today = date.today()
 
-        for habit, data in self.habits.items():
-            completions = 0
-            for day in data["completed_days"]:
-                d = date.fromisoformat(day)
-                if (today - d).days < 7:
-                    completions += 1
-
-            table.add_row(habit, f"{completions}/7")
+        for habit in self.habits.values():
+            completions = sum(
+                (today - date.fromisoformat(day)).days < 7
+                for day in habit["completed_days"]
+            )
+            table.add_row(habit["name"], f"{completions}/7")
 
         console.print(table)
 
     def delete_habit(self, name):
-        if name not in self.habits:
+        habit_id = next((hid for hid, h in self.habits.items() if h["name"] == name), None)
+        if not habit_id:
             console.print("[red]Habit not found.[/]")
             return
         
-        confirm = input(f"Are you sure you want to delete '{name}'? (y/n): ").lower()
+        confirm = input(f"Delete '{name}'? (y/n): ").lower()
         if confirm == "y":
-            del self.habits[name]
+            del self.habits[habit_id]
             self.save_data()
-            console.print(f"[bold red]Deleted habit:[/] {name}")
+            console.print(f"[red bold]Deleted:[/] {name}")
         else:
-            console.print("[yellow]Delete canceled.[/]")
+            console.print("[yellow]Canceling delete.[/]")

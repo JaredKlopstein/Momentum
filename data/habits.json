@@ -1,7 +1,14 @@
 {
-    "Study": {
-        "completed_days": [],
-        "streak": 0,
-        "last_completed": null
+  "habits": [
+    {
+      "id": "4cc3e4f9-ee6c-459f-a1f6-531cd8379680",
+      "name": "Gym",
+      "completed_days": [
+        "2025-12-05"
+      ],
+      "streak": 1,
+      "last_completed": "2025-12-05",
+      "notes": ""
     }
+  ]
 }
